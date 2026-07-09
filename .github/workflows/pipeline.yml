@@ -1,10 +1,12 @@
 name: Tourism-Project-Pipeline
+
 on:
   push:
     branches:
       - main  # Automatically triggers on push to the main branch
 
 jobs:
+
   register-dataset:
     runs-on: ubuntu-latest
     steps:
@@ -17,16 +19,9 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install huggingface_hub
-          mkdir -p tourism_project/data
-      - name: Upload Dataset to Hugging Face Hub
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          # Create a dummy tourism.csv file for demonstration if not already present.
-          # In a real scenario, this would involve your actual dataset.
-          echo "CustomerID,ProdTaken,Age,CityTier,DurationOfPitch,MonthlyIncome,NumberOfFollowups,NumberOfPersonVisiting,NumberOfTrips,PitchSatisfactionScore,PreferredPropertyStar,Passport,OwnCar,NumberOfChildrenVisiting,Designation,Gender,MaritalStatus,Occupation,ProductPitched,TypeofContact" > tourism_project/data/tourism.csv
-          echo "1,0,30,1,10,50000,3,2,5,3,3,1,1,0,Executive,Male,Single,Salaried,Deluxe,Self Inquiry" >> tourism_project/data/tourism.csv
-          python tourism_project/model_building/data_register.py
+          mkdir -p tourism_project/data # This directory will be used by prep.py for local downloads
+      # Removed dummy data generation and upload step. The pipeline now expects 'tourism.csv'
+      # to be pre-uploaded to MadhaviSura/tourism-prediction-pipeline dataset on Hugging Face.
 
   data-prep:
     needs: register-dataset
