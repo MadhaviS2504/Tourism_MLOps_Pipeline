@@ -1,0 +1,90 @@
+%%writefile github/workflows/pipeline.yml
+name: Tourism-Project-Pipeline
+
+on:
+  push:
+    branches:
+      - main  # Automatically triggers on push to the main branch
+
+jobs:
+
+  register-dataset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install huggingface_hub
+          mkdir -p tourism_project/data
+      - name: Upload Dataset to Hugging Face Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # Create a dummy tourism.csv file for demonstration if not already present.
+          # In a real scenario, this would involve your actual dataset.
+          echo "CustomerID,ProdTaken,Age,CityTier,DurationOfPitch,MonthlyIncome,NumberOfFollowups,NumberOfPersonVisiting,NumberOfTrips,PitchSatisfactionScore,PreferredPropertyStar,Passport,OwnCar,NumberOfChildrenVisiting,Designation,Gender,MaritalStatus,Occupation,ProductPitched,TypeofContact" > tourism_project/data/tourism.csv
+          echo "1,0,30,1,10,50000,3,2,5,3,3,1,1,0,Executive,Male,Single,Salaried,Deluxe,Self Inquiry" >> tourism_project/data/tourism.csv
+          python tourism_project/model_building/data_register.py
+
+  data-prep:
+    needs: register-dataset
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pandas scikit-learn huggingface_hub
+      - name: Run Data Preparation
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python tourism_project/model_building/prep.py
+
+  model-training:
+    needs: data-prep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pandas scikit-learn xgboost mlflow huggingface_hub joblib
+      - name: Start MLflow Server
+        run: |
+          nohup mlflow ui --host 0.0.0.0 --port 5000 &  # Run MLflow UI in the background
+          sleep 5  # Wait for a moment to let the server start
+      - name: Model Building and Registration
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python tourism_project/model_building/train_and_register_model.py
+
+  deploy-hosting:
+    runs-on: ubuntu-latest
+    needs: [model-training, data-prep, register-dataset]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install huggingface_hub
+      - name: Push files to Frontend Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python tourism_project/deployment/deploy_to_hf_space.py
