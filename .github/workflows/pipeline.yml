@@ -11,17 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
       - name: Install Dependencies
-        run: |
-          pip install --upgrade pip
-          pip install huggingface_hub
-          mkdir -p tourism_project/data # This directory will be used by prep.py for local downloads
-      # Removed dummy data generation and upload step. The pipeline now expects 'tourism.csv'
-      # to be pre-uploaded to MadhaviSura/tourism-prediction-pipeline dataset on Hugging Face.
+        run: pip install -r tourism_project/requirements.txt
+      - name: Upload Dataset to Hugging Face Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python tourism_project/model_building/data_register.py
 
   data-prep:
     needs: register-dataset
@@ -33,9 +28,7 @@ jobs:
         with:
           python-version: '3.9'
       - name: Install Dependencies
-        run: |
-          pip install --upgrade pip
-          pip install pandas scikit-learn huggingface_hub
+        run: pip install -r tourism_project/requirements.txt
       - name: Run Data Preparation
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -51,9 +44,7 @@ jobs:
         with:
           python-version: '3.9'
       - name: Install Dependencies
-        run: |
-          pip install --upgrade pip
-          pip install pandas scikit-learn xgboost mlflow huggingface_hub joblib
+        run: pip install -r tourism_project/requirements.txt
       - name: Start MLflow Server
         run: |
           nohup mlflow ui --host 0.0.0.0 --port 5000 &  # Run MLflow UI in the background
@@ -73,9 +64,7 @@ jobs:
         with:
           python-version: '3.9'
       - name: Install Dependencies
-        run: |
-          pip install --upgrade pip
-          pip install huggingface_hub
+        run: pip install -r tourism_project/requirements.txt
       - name: Push files to Frontend Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
