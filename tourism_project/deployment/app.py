@@ -5,7 +5,7 @@ import os
 from huggingface_hub import HfApi, hf_hub_download
 
 # Define the model repository ID
-MODEL_REPO_ID = "MadhaviSura/tourism-prediction-decision-tree"
+MODEL_REPO_ID = "MadhaviSura/tourism-prediction-pipeline"
 MODEL_FILENAME = "best_tourism_predictor.joblib"
 
 # Function to download the model from Hugging Face Hub
