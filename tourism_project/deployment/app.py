@@ -14,7 +14,8 @@ def load_model_from_hf():
         model_path = hf_hub_download(
             repo_id=MODEL_REPO_ID,
             filename=MODEL_FILENAME,
-            repo_type="model"
+            repo_type="model",
+            token=os.getenv("HF_TOKEN")
         )
         model = joblib.load(model_path)
         print(f"Model '{MODEL_FILENAME}' loaded successfully from Hugging Face Hub.")
