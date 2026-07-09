@@ -18,13 +18,14 @@ except Exception:
 # Create a README.md file for the Hugging Face Space to explicitly define SDK and disable GPU
 readme_content = f"""
 ---
-title: Tourism Prediction App
-emoji: 🚀
-colorFrom: yellow
-colorTo: green
+title: Tourism Package Predictor
+emoji: 🐠
+colorFrom: gray
+colorTo: blue
 sdk: docker
-app_file: app.py
-gpu: false
+pinned: false
+license: mit
+short_description: Wellness Tourism Package purchase prediction app
 ---
 # Tourism Prediction App
 
