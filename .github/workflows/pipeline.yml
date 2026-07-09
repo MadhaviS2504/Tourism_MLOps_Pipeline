@@ -1,12 +1,10 @@
 name: Tourism-Project-Pipeline
-
 on:
   push:
     branches:
       - main  # Automatically triggers on push to the main branch
 
 jobs:
-
   register-dataset:
     runs-on: ubuntu-latest
     steps:
