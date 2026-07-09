@@ -1,3 +1,4 @@
+
 from huggingface_hub import HfApi, create_repo
 import os
 
@@ -14,6 +15,27 @@ except Exception:
     print(f"Space '{FRONTEND_REPO_ID}' not found. Creating new space...")
     create_repo(repo_id=FRONTEND_REPO_ID, repo_type=repo_type, private=False, space_sdk="docker") # Changed space_sdk to 'docker'
     print(f"Space '{FRONTEND_REPO_ID}' created.")
+
+# Create a README.md file for the Hugging Face Space to explicitly define SDK and disable GPU
+readme_content = f"""
+---
+title: Tourism Prediction App
+emoji: 🚀
+colorFrom: yellow
+colorTo: green
+sdk: docker
+app_file: app.py
+gpu: false
+---
+# Tourism Prediction App
+
+This is a Streamlit application for predicting whether a customer will purchase a tourism package.
+"""
+
+readme_path = os.path.join("tourism_project/deployment", "README.md")
+with open(readme_path, "w") as f:
+    f.write(readme_content)
+print(f"Generated README.md at {readme_path}")
 
 # Upload all files from the 'deployment' directory to the Hugging Face Space
 api.upload_folder(
