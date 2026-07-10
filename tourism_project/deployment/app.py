@@ -2,7 +2,12 @@ import gradio as gr
 import pandas as pd
 import joblib
 import os
-from huggingface_hub import HfApi, hf_hub_download
+import logging
+from huggingface_hub import hf_hub_download
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Define the model repository ID
 MODEL_REPO_ID = "MadhaviSura/tourism-prediction-pipeline"
@@ -11,6 +16,7 @@ MODEL_FILENAME = "best_tourism_predictor.joblib"
 # Function to download and load the model from Hugging Face Hub
 def load_model_from_hf():
     try:
+        logger.info(f"Loading model from {MODEL_REPO_ID}/{MODEL_FILENAME}")
         model_path = hf_hub_download(
             repo_id=MODEL_REPO_ID,
             filename=MODEL_FILENAME,
@@ -18,17 +24,16 @@ def load_model_from_hf():
             token=os.getenv("HF_TOKEN")
         )
         model = joblib.load(model_path)
-        print(f"Model '{MODEL_FILENAME}' loaded successfully from Hugging Face Hub.")
+        logger.info(f"Model '{MODEL_FILENAME}' loaded successfully.")
         return model
     except Exception as e:
-        print(f"Error loading model from Hugging Face Hub: {e}")
-        raise # Re-raise the exception to indicate failure
+        logger.error(f"Error loading model: {e}")
+        return None  # Return None instead of raising exception
 
 # Load the model once when the app starts
 model = load_model_from_hf()
 
-# Define the input fields based on the Xtrain columns
-# These are the columns after preprocessing and one-hot encoding
+# Feature columns after preprocessing and one-hot encoding
 feature_columns = [
     'Age', 'CityTier', 'DurationOfPitch', 'MonthlyIncome',
     'NumberOfFollowups', 'NumberOfPersonVisiting', 'NumberOfTrips',
@@ -42,7 +47,6 @@ feature_columns = [
     'TypeofContact_Self Inquiry'
 ]
 
-# Create a prediction function that Gradio will call
 def predict_purchase(
     age, city_tier, duration_of_pitch, monthly_income,
     number_of_followups, number_of_person_visiting,
@@ -51,56 +55,58 @@ def predict_purchase(
     number_of_children_visiting, designation, gender,
     marital_status, occupation, product_pitched, type_of_contact
 ):
+    
+    if model is None:
+        return "⚠️ Error: Model is not available. Please try again later.", ""
 
-    # Initialize all feature columns to 0.0 (float) as models typically expect floats
-    input_data = {col: 0.0 for col in feature_columns}
+    try:
+        # Initialize all feature columns to 0.0
+        input_data = {col: 0.0 for col in feature_columns}
 
-    # Fill in numerical features
-    input_data['Age'] = float(age)
-    input_data['CityTier'] = float(city_tier)
-    input_data['DurationOfPitch'] = float(duration_of_pitch)
-    input_data['MonthlyIncome'] = float(monthly_income)
-    input_data['NumberOfFollowups'] = float(number_of_followups)
-    input_data['NumberOfPersonVisiting'] = float(number_of_person_visiting)
-    input_data['NumberOfTrips'] = float(number_of_trips)
-    input_data['PitchSatisfactionScore'] = float(pitch_satisfaction_score)
-    input_data['PreferredPropertyStar'] = float(preferred_property_star)
-    input_data['Passport'] = 1.0 if passport else 0.0
-    input_data['OwnCar'] = 1.0 if own_car else 0.0
-    input_data['NumberOfChildrenVisiting'] = float(number_of_children_visiting)
+        # Fill in numerical features
+        input_data['Age'] = float(age)
+        input_data['CityTier'] = float(city_tier)
+        input_data['DurationOfPitch'] = float(duration_of_pitch)
+        input_data['MonthlyIncome'] = float(monthly_income)
+        input_data['NumberOfFollowups'] = float(number_of_followups)
+        input_data['NumberOfPersonVisiting'] = float(number_of_person_visiting)
+        input_data['NumberOfTrips'] = float(number_of_trips)
+        input_data['PitchSatisfactionScore'] = float(pitch_satisfaction_score)
+        input_data['PreferredPropertyStar'] = float(preferred_property_star)
+        input_data['Passport'] = 1.0 if passport else 0.0
+        input_data['OwnCar'] = 1.0 if own_car else 0.0
+        input_data['NumberOfChildrenVisiting'] = float(number_of_children_visiting)
 
-    # Fill in one-hot encoded categorical features
-    # For each selected categorical value, set the corresponding OHE column to 1.0
-    # The default 0.0 handles the baseline categories implicitly.
-    if f'Designation_{designation}' in input_data:
-        input_data[f'Designation_{designation}'] = 1.0
-    # Handle Gender specifically as only 'Gender_Male' might be in feature_columns
-    if 'Gender_Male' in input_data:
-        input_data['Gender_Male'] = 1.0 if gender == 'Male' else 0.0
-    if f'MaritalStatus_{marital_status}' in input_data:
-        input_data[f'MaritalStatus_{marital_status}'] = 1.0
-    if f'Occupation_{occupation}' in input_data:
-        input_data[f'Occupation_{occupation}'] = 1.0
-    if f'ProductPitched_{product_pitched}' in input_data:
-        input_data[f'ProductPitched_{product_pitched}'] = 1.0
-    if f'TypeofContact_{type_of_contact}' in input_data:
-        input_data[f'TypeofContact_{type_of_contact}'] = 1.0
+        # Fill in one-hot encoded categorical features
+        if f'Designation_{designation}' in input_data:
+            input_data[f'Designation_{designation}'] = 1.0
+        if 'Gender_Male' in input_data:
+            input_data['Gender_Male'] = 1.0 if gender == 'Male' else 0.0
+        if f'MaritalStatus_{marital_status}' in input_data:
+            input_data[f'MaritalStatus_{marital_status}'] = 1.0
+        if f'Occupation_{occupation}' in input_data:
+            input_data[f'Occupation_{occupation}'] = 1.0
+        if f'ProductPitched_{product_pitched}' in input_data:
+            input_data[f'ProductPitched_{product_pitched}'] = 1.0
+        if f'TypeofContact_{type_of_contact}' in input_data:
+            input_data[f'TypeofContact_{type_of_contact}'] = 1.0
 
-    # Create a DataFrame from the input data, ensuring correct column order
-    input_df = pd.DataFrame([input_data], columns=feature_columns)
+        # Create DataFrame and make prediction
+        input_df = pd.DataFrame([input_data], columns=feature_columns)
+        prediction = model.predict(input_df)[0]
+        prediction_proba = model.predict_proba(input_df)[:, 1][0]
 
-    # Make prediction
-    prediction = model.predict(input_df)[0]
-    prediction_proba = model.predict_proba(input_df)[:, 1][0]
+        result_message = ""
+        if prediction == 1:
+            result_message = f"✅ **Likely to Purchase** (Confidence: {prediction_proba:.2%})"
+        else:
+            result_message = f"❌ **Unlikely to Purchase** (Confidence: {prediction_proba:.2%})"
 
-    result_message = ""
-    if prediction == 1:
-        result_message = f"The customer is likely to purchase the package! (Probability: {prediction_proba:.2f})"
-    else:
-        result_message = f"The customer is unlikely to purchase the package. (Probability: {prediction_proba:.2f})"
-
-    # Gradio can output multiple components. Let's return the message and the input data as HTML.
-    return result_message, input_df.to_html(index=False) # Convert DataFrame to HTML string
+        return result_message, input_df.to_html(index=False)
+    
+    except Exception as e:
+        logger.error(f"Prediction error: {e}")
+        return f"⚠️ Error during prediction: {str(e)}", ""
 
 # Define Gradio Interface inputs
 gr_inputs = [
@@ -127,7 +133,7 @@ gr_inputs = [
 # Define Gradio Interface outputs
 gr_outputs = [
     gr.Markdown(label="Prediction Result"),
-    gr.HTML(label="Input Data for Prediction") # Display the input DataFrame as HTML
+    gr.HTML(label="Input Data for Prediction")
 ]
 
 # Create and launch the Gradio Interface
@@ -140,4 +146,4 @@ iface = gr.Interface(
 )
 
 if __name__ == "__main__":
-    iface.launch()
+    iface.launch(server_name="0.0.0.0", server_port=7860, share=False)
