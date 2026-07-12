@@ -1,9 +1,13 @@
+
 import streamlit as st
 import pandas as pd
 import joblib
 import os
 from huggingface_hub import hf_hub_download
 from google.colab import userdata # Import userdata for Colab secrets
+
+# Streamlit App Layout must be the first Streamlit command
+st.set_page_config(page_title="Tourism Package Predictor", layout="wide")
 
 # Define the model repository ID
 MODEL_REPO_ID = "MadhaviSura/tourism-prediction-pipeline"
@@ -49,8 +53,7 @@ FINAL_FEATURE_COLUMNS = [
     'AgeGroup_<18', 'AgeGroup_18-30', 'AgeGroup_31-45', 'AgeGroup_46-60', 'AgeGroup_60+'
 ]
 
-# Streamlit App Layout
-st.set_page_config(page_title="Tourism Package Predictor", layout="wide")
+
 st.title("🌴 Tourism Package Purchase Predictor")
 st.markdown("Enter customer details to predict if they will purchase the Wellness Tourism Package.")
 
