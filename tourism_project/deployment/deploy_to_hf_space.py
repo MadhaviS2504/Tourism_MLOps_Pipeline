@@ -9,3 +9,4 @@ api.upload_folder(
     path_in_repo="",                          # optional: subfolder path inside the repo
 )
 print(f"Deployment files uploaded to Hugging Face Space MadhaviSura/tourism-application.")
+
